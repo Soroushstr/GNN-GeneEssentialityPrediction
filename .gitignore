@@ -1,0 +1,24 @@
+# Ignore virtual environment
+venv_gcnn-sfm/
+
+# Ignore virtual documents
+.virtual_documents/
+
+# Ignore Jupyter notebook checkpoints
+src/.ipynb_checkpoints/
+
+# Ignore build files
+src/build/
+
+# Ignore specific compiled file
+encode_seq.cp38-win_amd64.pyd
+
+# Other common ignores (optional)
+__pycache__/
+*.py[cod]
+*.log
+*.egg-info/
+dist/
+*.so
+*.pyd
+.DS_Store
