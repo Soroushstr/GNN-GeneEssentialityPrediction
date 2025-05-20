@@ -13,7 +13,7 @@ class BipartiteData(Data):
     def _add_other_feature(self, other_feature) :
         self.other_feature = other_feature
 
-    def __inc__(self, key, value):
+    def __inc__(self, key, value, *args):
         if key == 'edge_index':
             return torch.tensor([[self.x_src.size(0)], [self.x_dst.size(0)]])
         else:

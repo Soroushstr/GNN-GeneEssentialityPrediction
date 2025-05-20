@@ -281,8 +281,8 @@ def test(data1, model_name="h-12.pt",val_split=1, device = torch.device('cuda' i
 
     SN, SP, ACC = Judeff(TP, FN, FP, TN)
     
-    print("TP: {}, FN: {}, FP: {}, TN: {}".format(TP, FN, FP, TN))
-    print("SN: {}, SP: {}, ACC: {}, AUC: {}".format(SN, SP, ACC, AUC))
+    # print("TP: {}, FN: {}, FP: {}, TN: {}".format(TP, FN, FP, TN))
+    # print("SN: {}, SP: {}, ACC: {}, AUC: {}".format(SN, SP, ACC, AUC))
 
     return {
         "TP": TP, "FN": FN, "FP": FP, "TN": TN,
