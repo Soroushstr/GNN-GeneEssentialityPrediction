@@ -207,8 +207,8 @@ def train(dataset, model, learning_rate=1e-4, batch_size=64, epoch_n=100, random
             torch.save(model, model_name)
             best_val_acc = val_acc
 
-        print(f"Epoch {epoch+1}/{epoch_n} | Loss: {avg_epoch_loss:.4f} | "
-              f"Train Acc: {avg_epoch_acc:.4f} | Val Acc: {val_acc:.4f}")
+        # print(f"Epoch {epoch+1}/{epoch_n} | Loss: {avg_epoch_loss:.4f} | "
+        #       f"Train Acc: {avg_epoch_acc:.4f} | Val Acc: {val_acc:.4f}")
 
     # Plot learning curves
     plt.figure(figsize=(12, 5))
