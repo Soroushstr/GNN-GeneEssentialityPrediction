@@ -290,37 +290,37 @@ def evaluation(loader, model, device):
 #     }
 
 
-def test(data1, model_name="h-12.pt", val_split=1, device=torch.device('cuda' if torch.cuda.is_available() else 'cpu')):
+def test(data1, model_name="h-12.pt", val_split=1, device=torch.device('cuda' if torch.cuda.is_available() else 'cpu'), fasta_file=None):
     data_list = list(range(0, len(data1)))
     test_list = random.sample(data_list, int(len(data1) * val_split))
     testset = [data1[i] for i in data_list if i in test_list]
     model = torch.load(model_name, map_location=device)
     loader = DataLoader(testset, batch_size=len(data1), shuffle=False, follow_batch=['x_src', 'x_dst'])
 
+    # Read gene IDs from FASTA file if provided
+    gene_ids = []
+    if fasta_file:
+        gene_ids = [seq_record.id for seq_record in SeqIO.parse(fasta_file, "fasta")]
+        # Ensure we only take the genes in our test set
+        gene_ids = [gene_ids[i] for i in data_list if i in test_list]
+
     model.eval()
     TP, FN, FP, TN = 0, 0, 0, 0
     all_probs = []  # Stores probability of being essential (class 1)
     all_labels = []  # Actual labels
     all_preds = []   # Predicted labels (0 or 1)
-    gene_ids = []    # Optional: Gene identifiers if available
 
     for data in loader:
         with torch.no_grad():
             data = data.to(device)
-            pred_probs = model(data)  # Shape: [batch_size, 2]
-            preds = pred_probs.argmax(dim=1)  # Predicted class (0 or 1)
+            pred_probs = model(data)
+            preds = pred_probs.argmax(dim=1)
             labels = data.y
             
-            # Store results
-            all_probs.extend(pred_probs[:, 1].cpu().numpy())  # Probability of class 1 (essential)
+            all_probs.extend(pred_probs[:, 1].cpu().numpy())
             all_preds.extend(preds.cpu().numpy())
             all_labels.extend(labels.cpu().numpy())
             
-            # Optional: Store gene IDs if available in data
-            if hasattr(data, 'gene_id'):
-                gene_ids.extend(data.gene_id.cpu().numpy())
-            
-            # Calculate metrics
             AUC = Calauc(labels, preds)
             A, B, C, D = eff(labels, preds)
             TP += A
@@ -330,20 +330,18 @@ def test(data1, model_name="h-12.pt", val_split=1, device=torch.device('cuda' if
 
     SN, SP, ACC = Judeff(TP, FN, FP, TN)
     
-    # Return all results including probabilities, predicted and actual labels
     results = {
         "metrics": {
             "TP": TP, "FN": FN, "FP": FP, "TN": TN,
             "SN": SN, "SP": SP, "ACC": ACC, "AUC": AUC
         },
         "predictions": {
-            "probabilities": all_probs,  # P(class=1)
-            "predicted_labels": all_preds,  # 0 or 1
-            "true_labels": all_labels  # 0 or 1
+            "probabilities": all_probs,
+            "predicted_labels": all_preds,
+            "true_labels": all_labels
         }
     }
     
-    # Add gene IDs if available
     if gene_ids:
         results["predictions"]["gene_ids"] = gene_ids
     
