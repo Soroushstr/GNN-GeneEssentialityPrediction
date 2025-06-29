@@ -207,8 +207,8 @@ def train(dataset, model, learning_rate=1e-4, batch_size=64, epoch_n=100, random
             torch.save(model, model_name)
             best_val_acc = val_acc
 
-        # print(f"Epoch {epoch+1}/{epoch_n} | Loss: {avg_epoch_loss:.4f} | "
-        #       f"Train Acc: {avg_epoch_acc:.4f} | Val Acc: {val_acc:.4f}")
+        print(f"Epoch {epoch+1}/{epoch_n} | Loss: {avg_epoch_loss:.4f} | "
+              f"Train Acc: {avg_epoch_acc:.4f} | Val Acc: {val_acc:.4f}")
 
     # Plot learning curves
     plt.figure(figsize=(12, 5))
@@ -254,7 +254,43 @@ def evaluation(loader, model, device):
     return acc
 
 
-def test(data1, model_name="h-12.pt",val_split=1, device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')):
+# def test(data1, model_name="h-12.pt",val_split=1, device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')):
+#     data_list = list(range(0, len(data1)))
+#     test_list = random.sample(data_list, int(len(data1) * val_split))
+#     testset = [data1[i] for i in data_list if i in test_list]
+#     model = torch.load(model_name, map_location=device)
+#     loader = DataLoader(testset, batch_size=len(data1), shuffle=False, follow_batch=['x_src', 'x_dst'])
+
+#     model.eval()
+#     TP, FN, FP, TN = 0, 0, 0, 0
+
+#     for data in loader:
+#         with torch.no_grad():
+#             data = data.to(device)
+#             pred = model(data)
+#             pred = pred.argmax(dim=1)
+#             label = data.y
+#             AUC = Calauc(label, pred)
+#             # correct += pred.eq(label).sum().item()
+#             A, B, C, D = eff(label, pred)
+#             TP += A
+#             FN += B
+#             FP += C
+#             TN += D
+
+
+#     SN, SP, ACC = Judeff(TP, FN, FP, TN)
+    
+#     # print("TP: {}, FN: {}, FP: {}, TN: {}".format(TP, FN, FP, TN))
+#     # print("SN: {}, SP: {}, ACC: {}, AUC: {}".format(SN, SP, ACC, AUC))
+
+#     return {
+#         "TP": TP, "FN": FN, "FP": FP, "TN": TN,
+#         "SN": SN, "SP": SP, "ACC": ACC, "AUC": AUC
+#     }
+
+
+def test(data1, model_name="h-12.pt", val_split=1, device=torch.device('cuda' if torch.cuda.is_available() else 'cpu')):
     data_list = list(range(0, len(data1)))
     test_list = random.sample(data_list, int(len(data1) * val_split))
     testset = [data1[i] for i in data_list if i in test_list]
@@ -263,32 +299,55 @@ def test(data1, model_name="h-12.pt",val_split=1, device = torch.device('cuda' i
 
     model.eval()
     TP, FN, FP, TN = 0, 0, 0, 0
+    all_probs = []  # Stores probability of being essential (class 1)
+    all_labels = []  # Actual labels
+    all_preds = []   # Predicted labels (0 or 1)
+    gene_ids = []    # Optional: Gene identifiers if available
 
     for data in loader:
         with torch.no_grad():
             data = data.to(device)
-            pred = model(data)
-            pred = pred.argmax(dim=1)
-            label = data.y
-            AUC = Calauc(label, pred)
-            # correct += pred.eq(label).sum().item()
-            A, B, C, D = eff(label, pred)
+            pred_probs = model(data)  # Shape: [batch_size, 2]
+            preds = pred_probs.argmax(dim=1)  # Predicted class (0 or 1)
+            labels = data.y
+            
+            # Store results
+            all_probs.extend(pred_probs[:, 1].cpu().numpy())  # Probability of class 1 (essential)
+            all_preds.extend(preds.cpu().numpy())
+            all_labels.extend(labels.cpu().numpy())
+            
+            # Optional: Store gene IDs if available in data
+            if hasattr(data, 'gene_id'):
+                gene_ids.extend(data.gene_id.cpu().numpy())
+            
+            # Calculate metrics
+            AUC = Calauc(labels, preds)
+            A, B, C, D = eff(labels, preds)
             TP += A
             FN += B
             FP += C
             TN += D
 
-
     SN, SP, ACC = Judeff(TP, FN, FP, TN)
     
-    # print("TP: {}, FN: {}, FP: {}, TN: {}".format(TP, FN, FP, TN))
-    # print("SN: {}, SP: {}, ACC: {}, AUC: {}".format(SN, SP, ACC, AUC))
-
-    return {
-        "TP": TP, "FN": FN, "FP": FP, "TN": TN,
-        "SN": SN, "SP": SP, "ACC": ACC, "AUC": AUC
+    # Return all results including probabilities, predicted and actual labels
+    results = {
+        "metrics": {
+            "TP": TP, "FN": FN, "FP": FP, "TN": TN,
+            "SN": SN, "SP": SP, "ACC": ACC, "AUC": AUC
+        },
+        "predictions": {
+            "probabilities": all_probs,  # P(class=1)
+            "predicted_labels": all_preds,  # 0 or 1
+            "true_labels": all_labels  # 0 or 1
+        }
     }
-
+    
+    # Add gene IDs if available
+    if gene_ids:
+        results["predictions"]["gene_ids"] = gene_ids
+    
+    return results
 
 
 def eff(labels, preds):
