@@ -1,5 +1,6 @@
 import os
 import numpy as np
+import pandas as pd
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -344,6 +345,43 @@ def test(data1, model_name="h-12.pt", val_split=1, device=torch.device('cuda' if
     
     if gene_ids:
         results["predictions"]["gene_ids"] = gene_ids
+    
+    return results
+
+
+def predict(fasta_file, model_name, K=2, d=1, device=torch.device('cuda' if torch.cuda.is_available() else 'cpu')):
+    """Predict essentiality for genes in a new FASTA file"""
+    # 1. Load model
+    model = torch.load(model_name, map_location=device)
+    model.eval()
+    
+    # 2. Prepare data (without labels)
+    bio_data = Biodata.Biodata(
+        fasta_file=fasta_file,
+        label_file=None,  # No labels available
+        feature_file=None,
+        K=K,
+        d=d
+    )
+    dataset = bio_data.encode(thread=48)
+    
+    # 3. Get predictions
+    loader = DataLoader(dataset, batch_size=len(dataset), shuffle=False, follow_batch=['x_src', 'x_dst'])
+    
+    gene_ids = [seq_record.id for seq_record in SeqIO.parse(fasta_file, "fasta")]
+    all_probs = []
+    
+    for data in loader:
+        with torch.no_grad():
+            data = data.to(device)
+            pred_probs = model(data)
+            all_probs.extend(pred_probs[:, 1].cpu().numpy())  # Probability of being essential
+    
+    # 4. Create and sort results
+    results = pd.DataFrame({
+        'Gene_ID': gene_ids,
+        'Probability_Essential': all_probs
+    }).sort_values('Probability_Essential', ascending=False).reset_index(drop=True)
     
     return results
 
