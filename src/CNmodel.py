@@ -255,98 +255,98 @@ def evaluation(loader, model, device):
     return acc
 
 
-# def test(data1, model_name="h-12.pt",val_split=1, device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')):
-#     data_list = list(range(0, len(data1)))
-#     test_list = random.sample(data_list, int(len(data1) * val_split))
-#     testset = [data1[i] for i in data_list if i in test_list]
-#     model = torch.load(model_name, map_location=device)
-#     loader = DataLoader(testset, batch_size=len(data1), shuffle=False, follow_batch=['x_src', 'x_dst'])
-
-#     model.eval()
-#     TP, FN, FP, TN = 0, 0, 0, 0
-
-#     for data in loader:
-#         with torch.no_grad():
-#             data = data.to(device)
-#             pred = model(data)
-#             pred = pred.argmax(dim=1)
-#             label = data.y
-#             AUC = Calauc(label, pred)
-#             # correct += pred.eq(label).sum().item()
-#             A, B, C, D = eff(label, pred)
-#             TP += A
-#             FN += B
-#             FP += C
-#             TN += D
-
-
-#     SN, SP, ACC = Judeff(TP, FN, FP, TN)
-    
-#     # print("TP: {}, FN: {}, FP: {}, TN: {}".format(TP, FN, FP, TN))
-#     # print("SN: {}, SP: {}, ACC: {}, AUC: {}".format(SN, SP, ACC, AUC))
-
-#     return {
-#         "TP": TP, "FN": FN, "FP": FP, "TN": TN,
-#         "SN": SN, "SP": SP, "ACC": ACC, "AUC": AUC
-#     }
-
-
-def test(data1, model_name="h-12.pt", val_split=1, device=torch.device('cuda' if torch.cuda.is_available() else 'cpu'), fasta_file=None):
+def test(data1, model_name="h-12.pt",val_split=1, device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')):
     data_list = list(range(0, len(data1)))
     test_list = random.sample(data_list, int(len(data1) * val_split))
     testset = [data1[i] for i in data_list if i in test_list]
     model = torch.load(model_name, map_location=device)
     loader = DataLoader(testset, batch_size=len(data1), shuffle=False, follow_batch=['x_src', 'x_dst'])
 
-    # Read gene IDs from FASTA file if provided
-    gene_ids = []
-    if fasta_file:
-        gene_ids = [seq_record.id for seq_record in SeqIO.parse(fasta_file, "fasta")]
-        # Ensure we only take the genes in our test set
-        gene_ids = [gene_ids[i] for i in data_list if i in test_list]
-
     model.eval()
     TP, FN, FP, TN = 0, 0, 0, 0
-    all_probs = []  # Stores probability of being essential (class 1)
-    all_labels = []  # Actual labels
-    all_preds = []   # Predicted labels (0 or 1)
 
     for data in loader:
         with torch.no_grad():
             data = data.to(device)
-            pred_probs = model(data)
-            preds = pred_probs.argmax(dim=1)
-            labels = data.y
-            
-            all_probs.extend(pred_probs[:, 1].cpu().numpy())
-            all_preds.extend(preds.cpu().numpy())
-            all_labels.extend(labels.cpu().numpy())
-            
-            AUC = Calauc(labels, preds)
-            A, B, C, D = eff(labels, preds)
+            pred = model(data)
+            pred = pred.argmax(dim=1)
+            label = data.y
+            AUC = Calauc(label, pred)
+            # correct += pred.eq(label).sum().item()
+            A, B, C, D = eff(label, pred)
             TP += A
             FN += B
             FP += C
             TN += D
 
+
     SN, SP, ACC = Judeff(TP, FN, FP, TN)
     
-    results = {
-        "metrics": {
-            "TP": TP, "FN": FN, "FP": FP, "TN": TN,
-            "SN": SN, "SP": SP, "ACC": ACC, "AUC": AUC
-        },
-        "predictions": {
-            "probabilities": all_probs,
-            "predicted_labels": all_preds,
-            "true_labels": all_labels
-        }
+    # print("TP: {}, FN: {}, FP: {}, TN: {}".format(TP, FN, FP, TN))
+    # print("SN: {}, SP: {}, ACC: {}, AUC: {}".format(SN, SP, ACC, AUC))
+
+    return {
+        "TP": TP, "FN": FN, "FP": FP, "TN": TN,
+        "SN": SN, "SP": SP, "ACC": ACC, "AUC": AUC
     }
+
+
+# def test(data1, model_name="h-12.pt", val_split=1, device=torch.device('cuda' if torch.cuda.is_available() else 'cpu'), fasta_file=None):
+#     data_list = list(range(0, len(data1)))
+#     test_list = random.sample(data_list, int(len(data1) * val_split))
+#     testset = [data1[i] for i in data_list if i in test_list]
+#     model = torch.load(model_name, map_location=device)
+#     loader = DataLoader(testset, batch_size=len(data1), shuffle=False, follow_batch=['x_src', 'x_dst'])
+
+#     # Read gene IDs from FASTA file if provided
+#     gene_ids = []
+#     if fasta_file:
+#         gene_ids = [seq_record.id for seq_record in SeqIO.parse(fasta_file, "fasta")]
+#         # Ensure we only take the genes in our test set
+#         gene_ids = [gene_ids[i] for i in data_list if i in test_list]
+
+#     model.eval()
+#     TP, FN, FP, TN = 0, 0, 0, 0
+#     all_probs = []  # Stores probability of being essential (class 1)
+#     all_labels = []  # Actual labels
+#     all_preds = []   # Predicted labels (0 or 1)
+
+#     for data in loader:
+#         with torch.no_grad():
+#             data = data.to(device)
+#             pred_probs = model(data)
+#             preds = pred_probs.argmax(dim=1)
+#             labels = data.y
+            
+#             all_probs.extend(pred_probs[:, 1].cpu().numpy())
+#             all_preds.extend(preds.cpu().numpy())
+#             all_labels.extend(labels.cpu().numpy())
+            
+#             AUC = Calauc(labels, preds)
+#             A, B, C, D = eff(labels, preds)
+#             TP += A
+#             FN += B
+#             FP += C
+#             TN += D
+
+#     SN, SP, ACC = Judeff(TP, FN, FP, TN)
     
-    if gene_ids:
-        results["predictions"]["gene_ids"] = gene_ids
+#     results = {
+#         "metrics": {
+#             "TP": TP, "FN": FN, "FP": FP, "TN": TN,
+#             "SN": SN, "SP": SP, "ACC": ACC, "AUC": AUC
+#         },
+#         "predictions": {
+#             "probabilities": all_probs,
+#             "predicted_labels": all_preds,
+#             "true_labels": all_labels
+#         }
+#     }
     
-    return results
+#     if gene_ids:
+#         results["predictions"]["gene_ids"] = gene_ids
+    
+#     return results
 
 
 def predict(fasta_file, model_name, K=2, d=1, device=torch.device('cuda' if torch.cuda.is_available() else 'cpu')):
