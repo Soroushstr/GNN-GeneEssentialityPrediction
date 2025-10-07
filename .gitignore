@@ -1,5 +1,5 @@
 # Ignore virtual environment
-venv_gcnn-sfm/
+venv/
 
 # Ignore virtual documents
 .virtual_documents/
@@ -9,9 +9,6 @@ src/.ipynb_checkpoints/
 
 # Ignore build files
 src/build/
-
-# Ignore specific compiled file
-encode_seq.cp38-win_amd64.pyd
 
 # Other common ignores (optional)
 __pycache__/
